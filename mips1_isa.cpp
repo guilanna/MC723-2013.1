@@ -1480,35 +1480,113 @@ void ac_behavior( mthi, stage )
 };
 
 //!Instruction mflo behavior method.
-void ac_behavior( mflo )
-{
+void ac_behavior( mflo, stage )
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(0);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);
+					RB[rd] = lo;
+                        break;
+                case EX:						
+                        break;
+                case MEM:					
+                        break;
+                case WB:
+                        break;
+                default:
+       }  
+/*	
   dbg_printf("mflo r%d\n", rd);
   RB[rd] = lo;
-  dbg_printf("Result = %#x\n", RB[rd]);
+  dbg_printf("Result = %#x\n", RB[rd]);*/
 };
 
 //!Instruction mtlo behavior method.
-void ac_behavior( mtlo )
-{
+void ac_behavior( mtlo, stage )
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(0);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);		
+                        break;
+                case EX:		
+					hi = ID_EX.data1.read();
+                        break;
+                case MEM:					
+                        break;
+                case WB:
+                        break;
+                default:
+       }  
+/*	
   dbg_printf("mtlo r%d\n", rs);
   lo = RB[rs];
-  dbg_printf("Result = %#x\n", lo);
+  dbg_printf("Result = %#x\n", lo);*/
 };
 
 //!Instruction j behavior method.
 void ac_behavior( j )
-{
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(0);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);		
+                        break;
+                case EX:		
+					addr = addr << 2;
+					npc =  (ID_EX.npc & 0xF0000000) | addr;
+				//	ac_flush(IF);
+				//	ac_flush(ID);
+                        break;
+                case MEM:					
+                        break;
+                case WB:
+                        break;
+                default:
+       }  
+/*	
   dbg_printf("j %d\n", addr);
   addr = addr << 2;
 #ifndef NO_NEED_PC_UPDATE
   npc =  (ac_pc & 0xF0000000) | addr;
 #endif 
-  dbg_printf("Target = %#x\n", (ac_pc & 0xF0000000) | addr );
+  dbg_printf("Target = %#x\n", (ac_pc & 0xF0000000) | addr );*/
 };
 
 //!Instruction jal behavior method.
-void ac_behavior( jal )
-{
+void ac_behavior( jal, stage )
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(1);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);		
+					
+                        break;
+                case EX:		
+					addr = addr << 2;
+					npc =  (ID_EX.npc & 0xF0000000) | addr;
+					EX_MEM.alures.write(ID_EX.npc+4);	
+					ac_flush(IF);
+					ac_flush(ID);
+                        break;
+                case MEM:					
+					MEM_WB.wbdata.write(EX_MEM.alures.read());
+                        break;
+                case WB:
+				RB[Ra] = MEM_WB.wbdata.read()
+                        break;
+                default:
+       }  
+/*	
   dbg_printf("jal %d\n", addr);
   // Save the value of PC + 8 (return address) in $ra ($31) and
   // jump to the address given by PC(31...28)||(addr<<2)
@@ -1521,24 +1599,69 @@ void ac_behavior( jal )
 #endif 
 	
   dbg_printf("Target = %#x\n", (ac_pc & 0xF0000000) | addr );
-  dbg_printf("Return = %#x\n", ac_pc+4);
+  dbg_printf("Return = %#x\n", ac_pc+4);*/
 };
 
 //!Instruction jr behavior method.
-void ac_behavior( jr )
-{
+void ac_behavior( jr, stage )
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(0);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);		
+					ID_EX.data1.write(RB[rs]);
+                        break;
+                case EX:		
+					npc = ID_EX.data1.read(), 1;
+					ac_flush(IF);
+					ac_flush(ID);
+                        break;
+                case MEM:					
+                        break;
+                case WB:
+                        break;
+                default:
+       }  
+/*	
   dbg_printf("jr r%d\n", rs);
   // Jump to the address stored on the register reg[RS]
   // It must also flush the instructions that were loaded into the pipeline
 #ifndef NO_NEED_PC_UPDATE
   npc = RB[rs], 1;
 #endif 
-  dbg_printf("Target = %#x\n", RB[rs]);
+  dbg_printf("Target = %#x\n", RB[rs]);*/
 };
 
 //!Instruction jalr behavior method.
-void ac_behavior( jalr )
-{
+void ac_behavior( jalr, stage )
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(1);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);		
+					ID_EX.data1.write(RB[rs]);
+					if( rd == 0 )  //If rd is not defined use default
+						rd = Ra;
+					EX_MEM.alures.write(ID_EX.npc+4);	
+                        break;
+                case EX:		
+					npc = ID_EX.data1.read(), 1;	//como que guardo duas op de alu???
+					EX_MEM.alures.write(ID_EX.npc+4);					
+				//	ac_flush(IF);
+				//	ac_flush(ID);
+                        break;
+                case MEM:		
+					MEM_WB.wbdata.write(EX_MEM.alures.read());				
+                        break;
+                case WB:
+                        break;
+                default:
+       }  
+/*	
   dbg_printf("jalr r%d, r%d\n", rd, rs);
   // Save the value of PC + 8(return address) in rd and
   // jump to the address given by [rs]
@@ -1551,43 +1674,118 @@ void ac_behavior( jalr )
   if( rd == 0 )  //If rd is not defined use default
     rd = Ra;
   RB[rd] = ac_pc+4;
-  dbg_printf("Return = %#x\n", ac_pc+4);
+  dbg_printf("Return = %#x\n", ac_pc+4);*/
 };
 
 //!Instruction beq behavior method.
-void ac_behavior( beq )
-{
+void ac_behavior( beq, stage )
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(1);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);		
+					ID_EX.data1.write(RB[rs]);
+					ID_EX.data2.write(RB[rt]);					
+                        break;
+                case EX:		
+					if( ID_EX.data1.read() == ID_EX.data2.read() ){
+						EX_MEM.alures.write(ID_EX.npc + (ID_EX.imm<<2));
+					}else{
+						EX_MEM.alures.write(ID_EX.npc);
+						}
+                        break;
+                case MEM:	
+					npc = EX_MEM.alures.read();
+                        break;
+                case WB:
+                        break;
+                default:
+       }  
+/*	
   dbg_printf("beq r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   if( RB[rs] == RB[rt] ){
 #ifndef NO_NEED_PC_UPDATE
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+  }	*/
 };
 
 //!Instruction bne behavior method.
-void ac_behavior( bne )
-{	
+void ac_behavior( bne, stage )
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(0);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);		
+					ID_EX.data1.write(RB[rs]);
+					ID_EX.data2.write(RB[rt]);								
+                        break;
+                case EX:		
+					if( ID_EX.data1.read() != ID_EX.data2.read() ){
+						EX_MEM.alures.write(ID_EX.npc.read() + (imm<<2));
+					}else{
+						EX_MEM.alures.write(ID_EX.npc);
+						}						
+					//ac_flush(IF);
+					//ac_flush(ID);
+                        break;
+                case MEM:		
+					npc = EX_MEM.alures.read();
+                        break;
+                case WB:
+                        break;
+                default:
+       }  
+/*		
   dbg_printf("bne r%d, r%d, %d\n", rt, rs, imm & 0xFFFF);
   if( RB[rs] != RB[rt] ){
 #ifndef NO_NEED_PC_UPDATE
     npc = ac_pc + (imm<<2);
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+  }	*/
 };
 
 //!Instruction blez behavior method.
-void ac_behavior( blez )
-{
+void ac_behavior( blez, stage )
+{switch(stage){
+                case IF:
+                        break;
+                case ID:
+                    ID_EX.regwrite.write(0);
+                    ID_EX.memwrite.write(0);
+                    ID_EX.memread.write(0);		
+					ID_EX.data1.write(RB[rs]);									
+                        break;
+                case EX:		
+					if( (ID_EX.data1.read() == 0 ) || (ID_EX.data1&0x80000000 ) ){
+						EX_MEM.alures.write(ac_pc + (imm<<2));
+						}else{
+						EX_MEM.alures.write(ID_EX.npc);
+						}									
+					//ac_flush(IF);
+					//ac_flush(ID);
+                        break;
+                case MEM:		
+					npc = EX_MEM.alures.read(), 1;
+                        break;
+                case WB:
+                        break;
+                default:
+       }  
+/*		
   dbg_printf("blez r%d, %d\n", rs, imm & 0xFFFF);
   if( (RB[rs] == 0 ) || (RB[rs]&0x80000000 ) ){
 #ifndef NO_NEED_PC_UPDATE
     npc = ac_pc + (imm<<2), 1;
 #endif 
     dbg_printf("Taken to %#x\n", ac_pc + (imm<<2));
-  }	
+  }	*/
 };
 
 //!Instruction bgtz behavior method.
